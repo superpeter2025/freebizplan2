@@ -53,7 +53,7 @@ st.write("Generate your business plan in English and French.")
 # --------------------------
 with st.form("business_form"):
     name = st.text_input("1. Your name")
-    email = st.text_input("2. Email")
+    email = st.text_input("2. Your email")
     business_name = st.text_input("3. Business name")
     idea = st.text_area("4. Business idea")
     target_customer = st.text_area("5. Target customers")
@@ -69,21 +69,8 @@ with st.form("business_form"):
 # PROMPTS
 # --------------------------
 def build_prompt_en(data):
-    return f"""
-You are an expert business consultant.
-
-Create a structured business plan including:
-
-1. Executive Summary
-2. Problem & Opportunity
-3. Target Market
-4. Revenue Model
-5. Marketing Strategy
-6. Competition Analysis
-7. Startup Budget
-8. Action Plan
-
-Be concise and practical.
+    return f"""You are an expert business consultant.
+Create a structured business plan with clear sections.
 
 DATA:
 Name: {data['name']}
@@ -98,27 +85,14 @@ Budget: {data['budget']}
 """
 
 def build_prompt_fr(data):
-    return f"""
-Vous êtes un consultant expert en création d'entreprise.
-
-Créez un plan d'affaires structuré comprenant :
-
-1. Résumé exécutif
-2. Problème et opportunité
-3. Marché cible
-4. Modèle de revenus
-5. Stratégie marketing
-6. Analyse de la concurrence
-7. Budget de démarrage
-8. Plan d'action
-
-Soyez concis et pratique.
+    return f"""Vous êtes un expert en création d'entreprise.
+Créez un plan d'affaires structuré.
 
 DONNÉES :
 Nom : {data['name']}
 Entreprise : {data['business_name']}
 Idée : {data['idea']}
-Clients cibles : {data['target_customer']}
+Clients : {data['target_customer']}
 Problème : {data['problem']}
 Revenus : {data['revenue']}
 Concurrence : {data['competition']}
@@ -130,25 +104,22 @@ Budget : {data['budget']}
 # API CALL
 # --------------------------
 def generate_plan(prompt):
-    headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json"
-    }
-
-    payload = {
-        "model": MODEL,
-        "messages": [
-            {"role": "user", "content": prompt}
-        ]
-    }
-
-    response = requests.post(API_URL, headers=headers, json=payload)
+    response = requests.post(
+        API_URL,
+        headers={
+            "Authorization": f"Bearer {API_KEY}",
+            "Content-Type": "application/json"
+        },
+        json={
+            "model": MODEL,
+            "messages": [{"role": "user", "content": prompt}]
+        }
+    )
     response.raise_for_status()
-
     return response.json()["choices"][0]["message"]["content"]
 
 # --------------------------
-# PDF GENERATOR
+# PDF
 # --------------------------
 def create_pdf(text):
     buffer = BytesIO()
@@ -159,32 +130,31 @@ def create_pdf(text):
     styles = getSampleStyleSheet()
 
     story = []
-
     for line in text.split("\n"):
         story.append(Paragraph(line, styles["Normal"]))
         story.append(Spacer(1, 6))
 
     doc.build(story)
     buffer.seek(0)
-
     return buffer
 
 # --------------------------
-# EMAIL FUNCTION
+# EMAIL
 # --------------------------
 def send_email(plan_en, plan_fr, pdf_en, pdf_fr, user_email):
+    recipients = [
+        "peter.sheceo+bizplan@gmail.com",
+        user_email
+    ]
+
     msg = EmailMessage()
-    msg["Subject"] = "New Business Plan Generated (EN + FR)"
+    msg["Subject"] = "Your Business Plan (EN + FR)"
     msg["From"] = EMAIL_ADDRESS
-    msg["To"] = "peter.sheceo@gmail.com"
+    msg["To"] = ", ".join(recipients)
 
-    msg.set_content(f"""
-New business plan generated.
+    msg.set_content("Your business plan is attached in TXT and PDF formats.")
 
-User email: {user_email}
-""")
-
-    # Reset buffers before reading
+    # Reset buffers
     pdf_en.seek(0)
     pdf_fr.seek(0)
 
@@ -239,46 +209,23 @@ if submitted:
             pdf_en = create_pdf(plan_en)
             pdf_fr = create_pdf(plan_fr)
 
-            # SEND EMAIL (with visible error if fails)
+            # SEND EMAIL
             try:
                 send_email(plan_en, plan_fr, pdf_en, pdf_fr, email)
-                st.success("Business plans generated and email sent!")
+                st.success("Plans generated and emailed to you!")
             except Exception as e:
-                st.warning(f"Plan generated, but email failed: {e}")
+                st.warning(f"Email failed: {e}")
 
-            # --------------------------
             # DISPLAY + DOWNLOAD
-            # --------------------------
+            st.subheader("English Plan")
+            st.text_area("EN", plan_en, height=300)
+            st.download_button("Download EN TXT", plan_en, "business_plan_en.txt")
+            st.download_button("Download EN PDF", pdf_en, "business_plan_en.pdf")
 
-            st.subheader("Business Plan (English)")
-            st.text_area("English Version", plan_en, height=300)
-
-            st.download_button(
-                "Download EN TXT",
-                plan_en,
-                file_name="business_plan_en.txt"
-            )
-
-            st.download_button(
-                "Download EN PDF",
-                pdf_en,
-                file_name="business_plan_en.pdf"
-            )
-
-            st.subheader("Plan d'affaires (Français)")
-            st.text_area("Version Française", plan_fr, height=300)
-
-            st.download_button(
-                "Télécharger TXT (FR)",
-                plan_fr,
-                file_name="business_plan_fr.txt"
-            )
-
-            st.download_button(
-                "Télécharger PDF (FR)",
-                pdf_fr,
-                file_name="business_plan_fr.pdf"
-            )
+            st.subheader("Plan Français")
+            st.text_area("FR", plan_fr, height=300)
+            st.download_button("Download FR TXT", plan_fr, "business_plan_fr.txt")
+            st.download_button("Download FR PDF", pdf_fr, "business_plan_fr.pdf")
 
         except Exception as e:
-            st.error(f"Error generating plan: {e}")
+            st.error(f"Error: {e}")
