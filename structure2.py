@@ -240,11 +240,11 @@ if submitted:
             pdf_fr = create_pdf(plan_fr)
 
             # SEND EMAIL (with visible error if fails)
-            try:
-                send_email(plan_en, plan_fr, pdf_en, pdf_fr, email)
-                st.success("Business plans generated and email sent!")
-            except Exception as e:
-                st.warning(f"Plan generated, but email failed: {e}")
+           try:
+    send_email(plan_en, plan_fr, pdf_en, pdf_fr, email)
+    st.success("✅ Email sent successfully!")
+except Exception as e:
+    st.error(f"❌ Email failed: {e}")
 
             # --------------------------
             # DISPLAY + DOWNLOAD
