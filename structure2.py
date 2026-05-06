@@ -182,13 +182,11 @@ def send_email(plan_en, plan_fr, pdf_en, pdf_fr, user_email):
 New business plan generated.
 
 User email: {user_email}
-
---- ENGLISH ---
-{plan_en}
-
---- FRENCH ---
-{plan_fr}
 """)
+
+    # Reset buffers before reading
+    pdf_en.seek(0)
+    pdf_fr.seek(0)
 
     # Attach TXT
     msg.add_attachment(plan_en.encode("utf-8"),
@@ -233,28 +231,54 @@ if submitted:
         "budget": budget
     }
 
-    prompt_en = build_prompt_en(data)
-    prompt_fr = build_prompt_fr(data)
-
     with st.spinner("Generating business plans..."):
         try:
-            plan_en = generate_plan(prompt_en)
-            plan_fr = generate_plan(prompt_fr)
+            plan_en = generate_plan(build_prompt_en(data))
+            plan_fr = generate_plan(build_prompt_fr(data))
 
             pdf_en = create_pdf(plan_en)
             pdf_fr = create_pdf(plan_fr)
 
-            # SEND EMAIL
-            send_email(plan_en, plan_fr, pdf_en, pdf_fr, email)
+            # SEND EMAIL (with visible error if fails)
+            try:
+                send_email(plan_en, plan_fr, pdf_en, pdf_fr, email)
+                st.success("Business plans generated and email sent!")
+            except Exception as e:
+                st.warning(f"Plan generated, but email failed: {e}")
 
-            st.success("Business plans generated and sent!")
+            # --------------------------
+            # DISPLAY + DOWNLOAD
+            # --------------------------
 
-            # DISPLAY RESULTS
             st.subheader("Business Plan (English)")
             st.text_area("English Version", plan_en, height=300)
+
+            st.download_button(
+                "Download EN TXT",
+                plan_en,
+                file_name="business_plan_en.txt"
+            )
+
+            st.download_button(
+                "Download EN PDF",
+                pdf_en,
+                file_name="business_plan_en.pdf"
+            )
 
             st.subheader("Plan d'affaires (Français)")
             st.text_area("Version Française", plan_fr, height=300)
 
+            st.download_button(
+                "Télécharger TXT (FR)",
+                plan_fr,
+                file_name="business_plan_fr.txt"
+            )
+
+            st.download_button(
+                "Télécharger PDF (FR)",
+                pdf_fr,
+                file_name="business_plan_fr.pdf"
+            )
+
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(f"Error generating plan: {e}")
