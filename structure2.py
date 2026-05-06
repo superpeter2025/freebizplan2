@@ -46,22 +46,61 @@ if not st.session_state.authenticated:
 # HEADER
 # --------------------------
 st.title("AI Business Plan Generator")
-st.write("Generate your business plan in English and French.")
+st.write("Answer the questions below. Examples are provided to guide you.")
 
 # --------------------------
-# FORM
+# FORM WITH EXAMPLES
 # --------------------------
 with st.form("business_form"):
-    name = st.text_input("1. Your name")
-    email = st.text_input("2. Your email")
-    business_name = st.text_input("3. Business name")
-    idea = st.text_area("4. Business idea")
-    target_customer = st.text_area("5. Target customers")
-    problem = st.text_area("6. Problem you're solving")
-    revenue = st.text_area("7. Revenue model")
-    competition = st.text_area("8. Competitors")
-    marketing = st.text_area("9. Marketing strategy")
-    budget = st.text_input("10. Startup budget")
+    name = st.text_input(
+        "1. Your name",
+        placeholder="e.g., Sarah Johnson"
+    )
+
+    email = st.text_input(
+        "2. Your email",
+        placeholder="e.g., sarah@gmail.com"
+    )
+
+    business_name = st.text_input(
+        "3. Business name",
+        placeholder="e.g., FitMeal Prep Co."
+    )
+
+    idea = st.text_area(
+        "4. Business idea",
+        placeholder="e.g., A meal prep service delivering healthy, ready-to-eat meals to busy professionals."
+    )
+
+    target_customer = st.text_area(
+        "5. Target customers",
+        placeholder="e.g., Busy professionals aged 25–45 who want healthy meals but lack time to cook."
+    )
+
+    problem = st.text_area(
+        "6. Problem you're solving",
+        placeholder="e.g., People want to eat healthy but don’t have time to plan, shop, and cook meals."
+    )
+
+    revenue = st.text_area(
+        "7. Revenue model",
+        placeholder="e.g., Weekly subscription plans ($80–$150/week) depending on number of meals."
+    )
+
+    competition = st.text_area(
+        "8. Competitors",
+        placeholder="e.g., HelloFresh, local meal prep companies, Uber Eats (indirect competition)."
+    )
+
+    marketing = st.text_area(
+        "9. Marketing strategy",
+        placeholder="e.g., Instagram ads, influencer partnerships, referral program, local gym partnerships."
+    )
+
+    budget = st.text_input(
+        "10. Startup budget",
+        placeholder="e.g., $5,000 for kitchen setup, marketing, and initial inventory."
+    )
 
     submitted = st.form_submit_button("Generate Business Plan")
 
@@ -69,8 +108,20 @@ with st.form("business_form"):
 # PROMPTS
 # --------------------------
 def build_prompt_en(data):
-    return f"""You are an expert business consultant.
-Create a structured business plan with clear sections.
+    return f"""
+You are an expert business consultant.
+
+Create a structured business plan including:
+- Executive Summary
+- Problem & Opportunity
+- Target Market
+- Revenue Model
+- Marketing Strategy
+- Competition Analysis
+- Budget
+- Action Plan
+
+Be clear and practical.
 
 DATA:
 Name: {data['name']}
@@ -85,8 +136,20 @@ Budget: {data['budget']}
 """
 
 def build_prompt_fr(data):
-    return f"""Vous êtes un expert en création d'entreprise.
-Créez un plan d'affaires structuré.
+    return f"""
+Vous êtes un expert en création d'entreprise.
+
+Créez un plan d'affaires structuré comprenant :
+- Résumé exécutif
+- Problème et opportunité
+- Marché cible
+- Modèle de revenus
+- Stratégie marketing
+- Analyse de la concurrence
+- Budget
+- Plan d'action
+
+Soyez clair et pratique.
 
 DONNÉES :
 Nom : {data['name']}
@@ -152,13 +215,11 @@ def send_email(plan_en, plan_fr, pdf_en, pdf_fr, user_email):
     msg["From"] = EMAIL_ADDRESS
     msg["To"] = ", ".join(recipients)
 
-    msg.set_content("Your business plan is attached in TXT and PDF formats.")
+    msg.set_content("Your business plan is attached.")
 
-    # Reset buffers
     pdf_en.seek(0)
     pdf_fr.seek(0)
 
-    # Attach TXT
     msg.add_attachment(plan_en.encode("utf-8"),
                        maintype="text",
                        subtype="plain",
@@ -169,7 +230,6 @@ def send_email(plan_en, plan_fr, pdf_en, pdf_fr, user_email):
                        subtype="plain",
                        filename="business_plan_fr.txt")
 
-    # Attach PDFs
     msg.add_attachment(pdf_en.read(),
                        maintype="application",
                        subtype="pdf",
@@ -209,10 +269,9 @@ if submitted:
             pdf_en = create_pdf(plan_en)
             pdf_fr = create_pdf(plan_fr)
 
-            # SEND EMAIL
             try:
                 send_email(plan_en, plan_fr, pdf_en, pdf_fr, email)
-                st.success("Plans generated and emailed to you!")
+                st.success("Plans generated and emailed!")
             except Exception as e:
                 st.warning(f"Email failed: {e}")
 
